@@ -22,6 +22,18 @@ function checksExistsUserAccount(request, response, next) {
   return next()
 }
 
+function checksExistsTodoId(request, response, next) {
+  const { id } = request.params
+
+  if(!users.some(user => user.todos.some(todo => todo.id === id))) {
+    return response.status(400).json({ error: 'Todo not found.' })
+  }
+
+  request.id = id
+
+  return next()
+}
+
 app.post('/users', (request, response) => {
   const { name, username } = request.body
 
@@ -72,10 +84,9 @@ app.post('/todos', checksExistsUserAccount, (request, response) => {
   return response.status(201).send()
 });
 
-app.put('/todos/:id', checksExistsUserAccount, (request, response) => {
+app.put('/todos/:id', checksExistsUserAccount, checksExistsTodoId, (request, response) => {
   const { title, deadline } = request.body
-  const { id } = request.params
-  const { username } = request
+  const { username, id } = request
 
   const user = users.find(user => user.username === username)
 
@@ -92,9 +103,8 @@ app.put('/todos/:id', checksExistsUserAccount, (request, response) => {
   return response.status(201).send()
 });
 
-app.patch('/todos/:id/done', checksExistsUserAccount, (request, response) => {
-  const { id } = request.params
-  const { username } = request
+app.patch('/todos/:id/done', checksExistsUserAccount, checksExistsTodoId, (request, response) => {
+  const { username, id } = request
 
   const user = users.find(user => user.username === username)
 
@@ -110,8 +120,16 @@ app.patch('/todos/:id/done', checksExistsUserAccount, (request, response) => {
   return response.status(201).send()
 });
 
-app.delete('/todos/:id', checksExistsUserAccount, (request, response) => {
-  // Complete aqui
+app.delete('/todos/:id', checksExistsUserAccount, checksExistsTodoId, (request, response) => {
+  const { username, id } = request
+
+  const user = users.find(user => user.username === username)
+
+  const todo = user.todos.find(todo => todo.id === id)
+
+  user.todos.splice(todo, 1)
+
+  return response.status(200).send()
 });
 
 module.exports = app;
